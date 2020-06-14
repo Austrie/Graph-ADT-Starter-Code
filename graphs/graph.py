@@ -22,7 +22,7 @@ class Vertex(object):
         Parameters:
         vertex_obj (Vertex): An instance of Vertex to be stored as a neighbor.
         """
-        pass
+        self.__neighbors_dict[vertex_obj.get_id()] = vertex_obj
 
     def __str__(self):
         """Output the list of neighbors of this vertex."""
@@ -66,7 +66,9 @@ class Graph:
         Returns:
         Vertex: The new vertex object.
         """
-        pass
+        new_vertex = Vertex(vertex_id)
+        self.__vertex_dict[vertex_id] = new_vertex
+        return new_vertex
         
 
     def get_vertex(self, vertex_id):
@@ -85,7 +87,11 @@ class Graph:
         vertex_id1 (string): The unique identifier of the first vertex.
         vertex_id2 (string): The unique identifier of the second vertex.
         """
-        pass
+        vertex_1 = self.__vertex_dict[vertex_id1]
+        vertex_2 = self.__vertex_dict[vertex_id2]
+        vertex_1.add_neighbor(vertex_2)
+        if not self.__is_directed:
+            vertex_2.add_neighbor(vertex_1)
         
     def get_vertices(self):
         """
@@ -135,7 +141,7 @@ class Graph:
                     seen.add(neighbor.get_id())
                     queue.append(neighbor)
 
-        return # everything has been processed
+        return seen # everything has been processed
 
     def find_shortest_path(self, start_id, target_id):
         """
@@ -195,4 +201,36 @@ class Graph:
         Returns:
         list<string>: All vertex ids that are `target_distance` away from the start vertex
         """
-        pass
+        distance_dict = {}
+        self.__find_vertices_n_away_helper__(start_id, target_distance, 0, distance_dict)
+        return [
+            key
+            for key, value in distance_dict.items()
+            if value == target_distance
+        ]
+
+
+    def __find_vertices_n_away_helper__(self, start_id,
+        target_distance: int, curr_distance: int, distance_dict: dict):
+        """
+        Find and return all vertices n distance away.
+        
+        Arguments:
+        start_id (string): The id of the start vertex.
+        target_distance (integer): The distance from the start vertex we are looking for
+        seen (Set): A set containing ids that you wanted excluded from this call's result.
+
+        Returns:
+        list<string>: All vertex ids that are `target_distance` away from the start vertex
+        """
+        if start_id not in distance_dict or distance_dict[start_id] > curr_distance:
+                distance_dict[start_id] = curr_distance
+        if target_distance == curr_distance: 
+            return
+
+        curr_vertex_obj: Vertex = self.get_vertex(start_id)
+        for neighbor_vertex_obj in curr_vertex_obj.get_neighbors():
+            neighbor_vertex_id = neighbor_vertex_obj.get_id()
+            self.__find_vertices_n_away_helper__(
+                neighbor_vertex_id, target_distance, curr_distance + 1, distance_dict
+            )

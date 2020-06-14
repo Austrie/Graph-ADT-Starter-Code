@@ -23,7 +23,30 @@ def read_graph_from_file(filename):
 
     # TODO: Use the 3rd+ line to add the edges to the graph
 
-    pass
+    graph_obj = None
+    with open(filename) as graph_file:
+        for index, line in enumerate(graph_file.readlines()):
+            line = line.strip()
+            if index == 0:
+                if line not in ("D", "G"):
+                    raise(ValueError("Bad graph type"))
+                    return
+                graph_obj = Graph(
+                    is_directed=(line == "D")
+                )
+            elif index == 1:
+                for vertex_id in line.split(','):
+                    if vertex_id == "":
+                        continue
+                    else:
+                        graph_obj.add_vertex(vertex_id)
+            else:
+                if line == "":
+                    continue
+                vertices = line[1:-1].split(',')
+                graph_obj.add_edge(vertices[0], vertices[1])
+    return graph_obj
+
 
 if __name__ == '__main__':
 

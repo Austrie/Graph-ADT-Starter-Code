@@ -27,7 +27,7 @@ if __name__ == '__main__':
     graph.add_edge('F', 'G')
 
     # Or, read a graph in from a file
-    # graph = read_graph_from_file('test_files/graph_small_directed.txt')
+    # graph = read_graph_from_file('test_files/graph_small_directed_2.txt')
 
     # Output the vertices & edges
     # Print vertices
@@ -48,7 +48,34 @@ if __name__ == '__main__':
     shortest_path = graph.find_shortest_path('A', 'E')
     print(shortest_path)
 
+     # Find all vertices N distance away
+    print('Finding all vertices distance 1 away...')
+    vertices_2_away = graph.find_vertices_n_away('A', 1)
+    print(vertices_2_away)
+
     # Find all vertices N distance away
     print('Finding all vertices distance 2 away...')
     vertices_2_away = graph.find_vertices_n_away('A', 2)
     print(vertices_2_away)
+
+    # Find all vertices N distance away
+    print('Finding all vertices distance 3 away...')
+    vertices_2_away = graph.find_vertices_n_away('A', 3)
+    print(vertices_2_away)
+
+
+    # Or, read a graph in from a file
+    graph = read_graph_from_file('test_files/graph_small_directed_2.txt')
+
+    # Output the vertices & edges
+    # Print vertices
+    print(f'The vertices are: {graph.get_vertices()} \n')
+
+     # Search the graph
+    print('Performing BFS traversal...')
+    graph.bfs_traversal('1')
+
+    # Find shortest path
+    print('Finding shortest path from vertex 1 to vertex 6...')
+    shortest_path = graph.find_shortest_path('1', '6')
+    print(shortest_path)

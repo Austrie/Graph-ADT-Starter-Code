@@ -1,4 +1,6 @@
 from collections import deque
+from operator import itemgetter
+import random
 
 class Vertex(object):
     """
@@ -53,7 +55,7 @@ class Graph:
         Parameters:
         is_directed (boolean): Whether the graph is directed (edges go in only one direction).
         """
-        self.__vertex_dict = {} # id -> object
+        self.__vertex_dict = dict() # id -> object
         self.__is_directed = is_directed
 
     def add_vertex(self, vertex_id):
@@ -71,7 +73,7 @@ class Graph:
         return new_vertex
         
 
-    def get_vertex(self, vertex_id):
+    def get_vertex(self, vertex_id) -> Vertex:
         """Return the vertex if it exists."""
         if vertex_id not in self.__vertex_dict:
             return None
@@ -234,3 +236,265 @@ class Graph:
             self.__find_vertices_n_away_helper__(
                 neighbor_vertex_id, target_distance, curr_distance + 1, distance_dict
             )
+
+
+    def __get_entry_points__(self, if_not_directed_return_one=True, return_all_values_too=False):
+        if not self.__is_directed:
+            if if_not_directed_return_one:
+                startable_ids = [list(self.__vertex_dict.keys())[0]]
+            else:
+                startable_ids = list(self.__vertex_dict.keys())
+        else:
+            startable_ids = set(self.__vertex_dict.keys())
+            all_values = set()
+            for starting_id in startable_ids:
+                neighbors_arr = [neighbor_vertex.get_id() for neighbor_vertex in self.__vertex_dict[starting_id].get_neighbors()]
+                all_values.update(neighbors_arr)
+            startable_ids = list(startable_ids - all_values)
+
+        return startable_ids if not return_all_values_too else (startable_ids, list(all_values))
+
+    def is_bipartite(self):
+        """
+        Return True if the graph is bipartite, and False otherwise.
+        """
+        startable_ids = self.__get_entry_points__()
+
+        is_actually_bipartite = False
+        for start_id in startable_ids:
+            next_try = False
+            # Keep a set to denote which vertices we've seen before
+            red_seen = set()
+            red_seen.add(start_id)
+            blue_seen = set()
+
+            # Keep a queue so that we visit vertices in the appropriate order
+            queue = deque()
+            queue.append(self.get_vertex(start_id))
+
+            current_color_blue = True
+            # print('Current color is:', "blue" if current_color_blue else "red")
+            while queue and not next_try:
+                current_vertex_obj = queue.pop()
+                # current_vertex_id = current_vertex_obj.get_id()
+
+                # Process current node
+                # print('Processing neighbors of vertex {}'.format(current_vertex_id))
+                # print("Neighbors are", [neighbor.get_id() for neighbor in current_vertex_obj.get_neighbors()])
+                # print('Color to be assigned to neighbors is:', "blue" if current_color_blue else "red")
+
+                # Add its neighbors to the queue
+                for neighbor in current_vertex_obj.get_neighbors():
+                    neighbor_id = neighbor.get_id()
+                    if neighbor_id in red_seen:
+                        if current_color_blue:
+                            next_try = True
+                            break
+                    elif neighbor_id in blue_seen:
+                        if not current_color_blue:
+                            next_try = True
+                            break
+                    else:
+                        if current_color_blue:
+                            blue_seen.add(neighbor_id)
+                        else:
+                            red_seen.add(neighbor_id)
+                        queue.append(neighbor)
+                current_color_blue = not current_color_blue
+            if not next_try:
+                is_actually_bipartite = True
+                break
+
+        # print("blue_seen:", blue_seen)
+        # print("red_seen:", red_seen)
+        # print('is_actually_bipartite:', is_actually_bipartite)
+        return is_actually_bipartite
+
+    def get_connected_components(self):
+        """
+        Return a list of all connected components, with each connected component
+        represented as a list of vertex ids.
+        """
+        # startable_ids, all_values = self.__get_entry_points__(True, True)
+        all_values = set(self.__vertex_dict.keys())
+
+        all_seen = {}
+        components = {}
+        curr_component = -1
+        for start_id in all_values:
+            if start_id in all_seen:
+                continue
+
+            curr_component += 1
+            temp_component = None
+            components[curr_component] = set()
+            curr_vertex_obj = self.get_vertex(start_id)
+            queue = deque()
+            queue.append(curr_vertex_obj)
+            while queue:
+                current_vertex_obj = queue.pop()
+                curr_id = current_vertex_obj.get_id()
+                if curr_id in all_seen:
+                    correct_component = all_seen[curr_id]
+                    if correct_component == curr_component:
+                        continue
+                    components[correct_component].update(
+                        components[curr_component]
+                    )
+                    components[correct_component].add(curr_id)
+                    for id in components[curr_component]:
+                        all_seen[id] = correct_component
+                    
+                    temp_component = curr_component
+                    curr_component = correct_component
+                    # components.pop(curr_component, None)
+                    components[temp_component] = set()
+                else:
+                    all_seen[curr_id] = curr_component
+                    components[curr_component].add(curr_id)
+                # Process current node
+                # print('Processing neighbors of vertex {}'.format(current_vertex_obj.get_id()))
+                # print("Neighbors are", [neighbor.get_id() for neighbor in current_vertex_obj.get_neighbors()])
+
+                # Add its neighbors to the queue
+                for neighbor in current_vertex_obj.get_neighbors():
+                    queue.append(neighbor)
+            curr_component = temp_component - 1 if temp_component else curr_component
+            temp_component = None
+
+        return [list(components[component_key]) for component_key in components if len(components[component_key]) > 0]
+
+    
+    def find_path_dfs_iter(self, start_id, target_id):
+        """
+        Use DFS with a stack to find a path from start_id to target_id.
+        """
+        if not self.contains_id(start_id) or not self.contains_id(target_id):
+            raise KeyError("One or both vertices are not in the graph!")
+
+        # vertex keys we've seen before and their paths from the start vertex
+        vertex_id_to_path = {
+            start_id: [start_id] # only one thing in the path
+        }
+
+        # stack of vertices to visit next
+        stack = list() 
+        stack.append(self.get_vertex(start_id))
+
+        # while stack is not empty
+        while stack:
+            current_vertex_obj = stack.pop() # vertex obj to visit next
+            current_vertex_id = current_vertex_obj.get_id()
+            # print('current_vertex_id:', current_vertex_id)
+            # print('vertex_id_to_path:', vertex_id_to_path)
+
+            # found target, can stop the loop early
+            if current_vertex_id == target_id:
+                break
+
+            # print('Didnt break')
+
+            neighbors = current_vertex_obj.get_neighbors()
+            # print('neighbors', neighbors)
+            for neighbor in neighbors:
+                # if neighbor.get_id() not in vertex_id_to_path:
+                current_path = vertex_id_to_path[current_vertex_id]
+                # extend the path by 1 vertex
+                next_path = current_path + [neighbor.get_id()]
+                vertex_id_to_path[neighbor.get_id()] = next_path
+                stack.append(neighbor)
+                    # print(vertex_id_to_path)
+            
+
+        if target_id not in vertex_id_to_path: # path not found
+            return None
+
+        # print('vertex_id_to_path:', vertex_id_to_path)
+        return vertex_id_to_path[target_id]
+
+
+    def contains_cycle(self):
+        """
+        Return True if the directed graph contains a cycle, False otherwise.
+        """
+        all_components = self.get_connected_components()
+        if not self.__is_directed:
+            return len(all_components) > 0
+        for component in all_components:
+            all_neighbors = set()
+            for vertex_id in component:
+                all_neighbors.update(
+                    [
+                        vertex.get_id()
+                        for vertex in self.get_vertex(vertex_id).get_neighbors()
+                    ]
+                )
+            starting_points = list(set(component) - all_neighbors)
+            if len(starting_points) == 0:
+                return True
+            for starting_point in starting_points:
+                seen = set()
+                queue = deque()
+                queue.append((None, starting_point))
+                while queue:
+                    parent, curr_vertex_id = queue.pop()
+                    if (parent, curr_vertex_id) in seen:
+                        print("Cycle at:", (parent, curr_vertex_id))
+                        return True
+                    else:
+                        seen.add(curr_vertex_id)
+                        for neighbor in self.get_vertex(curr_vertex_id).get_neighbors():
+                            queue.append((parent, neighbor.get_id()))
+
+        return False
+
+
+    def topological_sort_helper(
+        self, dependencies, parent_priority, curr_vertex_id
+    ):
+        dependencies[curr_vertex_id] = (
+            (
+                dependencies[curr_vertex_id]
+                if dependencies[curr_vertex_id] > parent_priority + 1
+                else parent_priority + 1
+            )
+            if curr_vertex_id in dependencies else parent_priority + 1
+        )
+        for neighbor in self.get_vertex(curr_vertex_id).get_neighbors():
+            self.topological_sort_helper(
+                dependencies,
+                dependencies[curr_vertex_id],
+                neighbor.get_id()
+            )
+
+    def topological_sort(self):
+        """
+        Return a valid ordering of vertices in a directed acyclic graph.
+        If the graph contains a cycle, throw a ValueError.
+        """
+        if self.contains_cycle():
+            raise ValueError("Graph contains a cycle and/or is not a directed graph.")
+        all_components = self.get_connected_components()
+        dependencies = {}
+        for component in all_components:
+            all_neighbors = set()
+            for vertex_id in component:
+                all_neighbors.update(
+                    [
+                        vertex.get_id()
+                        for vertex in self.get_vertex(vertex_id).get_neighbors()
+                    ]
+                )
+            starting_points = list(set(component) - all_neighbors)
+            for starting_point in starting_points:
+                self.topological_sort_helper(dependencies, -1, starting_point)
+
+        return [
+            key
+            for key, priority in sorted([
+                (key, dependencies[key])
+                for key in dependencies
+            ], key=itemgetter(1,0))
+        ]
+                
+

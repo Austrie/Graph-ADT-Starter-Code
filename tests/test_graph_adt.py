@@ -98,5 +98,242 @@ class TestReadGraphFromFile(unittest.TestCase):
         self.assertEqual(vertices_3_away, ['F'])
 
 
+    def test_is_bipartite(self):
+        """Create a graph."""
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+        graph.add_vertex('D')
+        graph.add_edge('A','B')
+        graph.add_edge('A','C')
+        graph.add_edge('A','D')
+        self.assertEqual(graph.is_bipartite(), True)
+
+        graph = Graph(is_directed=False)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+        graph.add_vertex('D')
+        graph.add_edge('A','B')
+        graph.add_edge('B','D')
+        graph.add_edge('D','C')
+        graph.add_edge('C','A')
+        self.assertEqual(graph.is_bipartite(), True)
+
+    def test_is_not_bipartite(self):
+        """Create a graph."""
+        graph = Graph(is_directed=False)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_edge('A','B')
+        graph.add_edge('B','D')
+        graph.add_edge('D','C')
+        graph.add_edge('C','A')
+        # These two cause the rule to break
+        graph.add_edge('C','E')
+        graph.add_edge('D','E')
+        self.assertEqual(graph.is_bipartite(), False)
+
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+        graph.add_vertex('D')
+        graph.add_edge('A','B')
+        graph.add_edge('A','C')
+        graph.add_edge('A','D')
+        # This one causes the rule to break
+        graph.add_edge('B','D')
+        self.assertEqual(graph.is_bipartite(), False)
+
+    def test_connected_components_undirected(self):
+        """Create a graph."""
+        graph = Graph(is_directed=False)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_vertex('F')
+
+        graph.add_vertex('G')
+        graph.add_vertex('H')
+        
+        graph.add_edge('A','B')
+        graph.add_edge('B','C')
+        graph.add_edge('C','A')
+
+        graph.add_edge('D','E')
+        graph.add_edge('E','F')
+
+        graph.add_edge('G','H')
+
+        connected_components = sorted([
+            sorted(component)
+            for component in graph.get_connected_components()
+        ])
+        answer = sorted([
+            sorted(['A', 'B', 'C']),
+            sorted(['D', 'E', 'F']),
+            sorted(['G', 'H'])
+        ])
+        self.assertEqual(len(connected_components), len(answer))
+        self.assertListEqual(connected_components, answer)
+
+    def test_connected_components_directed(self):
+        """Create a graph."""
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_vertex('F')
+
+        graph.add_vertex('G')
+        graph.add_vertex('H')
+        
+        
+        graph.add_edge('A','B')
+        graph.add_edge('B','C')
+        graph.add_edge('C','A')
+
+        graph.add_edge('D','E')
+        graph.add_edge('E','F')
+
+        graph.add_edge('G','H')
+        graph.add_edge('G','F')
+
+        connected_components = sorted([
+            sorted(component)
+            for component in graph.get_connected_components()
+        ])
+        answer = sorted([
+            sorted(['A', 'B', 'C']),
+            sorted(['D', 'E', 'F', 'G', 'H']),
+        ])
+        self.assertListEqual(connected_components, answer)
+        
+
+    def test_bfs(self):
+        """Create a graph."""
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_vertex('F')
+        graph.add_vertex('G')
+
+        graph.add_edge('A','B')
+        graph.add_edge('B','C')
+        graph.add_edge('B','G')
+        graph.add_edge('C','F')
+        graph.add_edge('C','D')
+        graph.add_edge('D','E')
+        graph.add_edge('E','F')
+
+        answer = sorted(['A', 'B', 'C', 'D', 'E', 'F'])
+        self.assertListEqual(graph.find_path_dfs_iter('A', 'F'), answer)
+
+
+    def test_has_cycle(self):
+        """Create a graph."""
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_vertex('F')
+
+        graph.add_vertex('G')
+        graph.add_vertex('H')
+        
+        
+        graph.add_edge('A','B')
+        graph.add_edge('B','C')
+        graph.add_edge('C','A')
+
+        graph.add_edge('D','E')
+        graph.add_edge('E','F')
+
+        graph.add_edge('G','H')
+        graph.add_edge('G','F')
+
+        self.assertEqual(True, graph.contains_cycle())
+
+
+    def test_has_no_cycle(self):
+        """Create a graph."""
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_vertex('F')
+
+        graph.add_vertex('G')
+        graph.add_vertex('H')
+        
+        
+        graph.add_edge('A','B')
+        graph.add_edge('B','C')
+
+        graph.add_edge('D','E')
+        graph.add_edge('E','F')
+
+        graph.add_edge('G','H')
+        graph.add_edge('G','F')
+
+        self.assertEqual(False, graph.contains_cycle())
+
+
+    def test_topological_sort(self):
+        """Create a graph."""
+        graph = Graph(is_directed=True)
+        graph.add_vertex('A')
+        graph.add_vertex('B')
+        graph.add_vertex('C')
+
+        graph.add_vertex('D')
+        graph.add_vertex('E')
+        graph.add_vertex('F')
+
+        graph.add_vertex('G')
+        graph.add_vertex('H')
+        graph.add_vertex('I')
+        graph.add_vertex('J')
+        
+        
+        graph.add_edge('A','B')
+        graph.add_edge('A','C')
+        graph.add_edge('B','C')
+        graph.add_edge('B','D')
+        graph.add_edge('C','D')
+        graph.add_edge('C','E')
+        graph.add_edge('E','F')
+
+        graph.add_edge('G','H')
+        graph.add_edge('G','I')
+        graph.add_edge('H','I')
+        graph.add_edge('H','J')
+
+        answer = ['A', 'G', 'B', 'H', 'C', 'I', 'J', 'D', 'E', 'F']
+        self.assertListEqual(answer, graph.topological_sort())
+
+        
+
+
 if __name__ == '__main__':
     unittest.main()
